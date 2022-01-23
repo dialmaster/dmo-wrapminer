@@ -1,0 +1,11 @@
+# Full node info
+NodeUrl: http://192.168.1.150:6434
+NodeUser: username
+NodePass: password
+WalletAddr: somereceivingaddress
+
+# DMO-monitor info
+StatRpcUrl: http://192.168.1.174:11235/minerstats
+
+# How often to restart your miner
+RespawnSeconds: 1200
