@@ -12,7 +12,7 @@ dmo-monitor use is NOT required, this can simply be used as a wrapper to restart
 ## Usage
 * Copy `dmowrapconfig.yaml` to `mydmowrapconfig.yaml` and edit/set configuration options
 * Place the executable in the same directory as DynMiner2.exe and dyn_miner2.cl
-* Execute dmo-wrapminer with your CPU or GPU options and a miner name (miner name will not be used anywhere if not connected to dmo-monitor)
+* Execute dmo-wrapminer 
 
 ## Building the executable
 * Go Version used for build: 1.17.5
