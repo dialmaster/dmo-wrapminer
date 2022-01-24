@@ -50,16 +50,11 @@ type conf struct {
 	MinerName      string `yaml:"MinerName"`
 }
 
-
-// Default to the config passed on the command line... or fallback to mydmowrapconfig.yaml...
 func (c *conf) getConf() *conf {
-	myConfigFile := "mydmowrapconfig.yaml"
-	if _, err := os.Stat(configFile); err == nil {
-		myConfigFile = configFile
-	}
+	_, err := os.Stat(configFile);
 
-	fmt.Printf("Using config %s", myConfigFile)
-	yamlFile, err := ioutil.ReadFile(myConfigFile)
+	fmt.Printf("Using config %s\n", configFile)
+	yamlFile, err := ioutil.ReadFile(configFile)
 	if err != nil {
 		log.Fatalf("Unable to open config file   #%v ", err)
 	}
