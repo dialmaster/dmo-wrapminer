@@ -12,10 +12,9 @@ import (
 	"time"
 )
 
+var configFile string
 var m sync.Mutex
 var mineCmd *exec.Cmd
-var minerName string
-var minerArgs string
 var ttl time.Duration
 var endMiner, endChkBlk time.Time
 var user, pass, gpu, globalUnits, localUnits, GPUID, walletaddr string
@@ -46,22 +45,27 @@ type conf struct {
 	NodePass       string `yaml:"NodePass"`
 	WalletAddr     string `yaml:"WalletAddr"`
 	StatRpcUrl     string `yaml:"StatRpcUrl"`
+	MinerOpts      string `yaml:"MinerOpts"`
 	RespawnSeconds int    `yaml:"RespawnSeconds"`
+	MinerName      string `yaml:"MinerName"`
 }
 
+
+// Default to the config passed on the command line... or fallback to mydmowrapconfig.yaml...
 func (c *conf) getConf() *conf {
-	myConfigFile := "dmowrapconfig.yaml"
-	if _, err := os.Stat("mydmowrapconfig.yaml"); err == nil {
-		myConfigFile = "mydmowrapconfig.yaml"
+	myConfigFile := "mydmowrapconfig.yaml"
+	if _, err := os.Stat(configFile); err == nil {
+		myConfigFile = configFile
 	}
 
+	fmt.Printf("Using config %s", myConfigFile)
 	yamlFile, err := ioutil.ReadFile(myConfigFile)
 	if err != nil {
-		log.Printf("yamlFile.Get err   #%v ", err)
+		log.Fatalf("Unable to open config file   #%v ", err)
 	}
 	err = yaml.Unmarshal(yamlFile, c)
 	if err != nil {
-		log.Fatalf("Unmarshal: %v", err)
+		log.Fatalf("Config file invalid format: %v", err)
 	}
 
 	return c
@@ -71,20 +75,24 @@ var c conf
 
 func main() {
 	var args = os.Args[1:]
-	c.getConf()
-	if len(args) != 2 {
-		fmt.Fprintf(os.Stderr, "Usage: %s <minerargs> <minername>\n", os.Args[0])
+	if len(args) != 1 {
+		fmt.Fprintf(os.Stderr, "Usage: %s <config file>\n", os.Args[0])
 		fmt.Fprintf(os.Stderr, "Note: This does NOT yet support pool mining or HIVE options\n")
 		fmt.Fprintln(os.Stderr, "")
 		fmt.Fprintln(os.Stderr, "Example:")
-		fmt.Fprintf(os.Stderr, "    %s GPU,25600,64,0,0 MyMiner\n", os.Args[0])
+		fmt.Fprintf(os.Stderr, "    %s test_miner.yaml\n", os.Args[0])
 		os.Exit(1)
 	}
 
+	configFile = args[0]
+
+	c.getConf()
+	// I NEED TO ADD VALIDATION OF CONFIG OPTIONS AND DEFAULTS!!!
+
+
 	var timer = c.RespawnSeconds
 
-	minerArgs = args[0]
-	minerName = args[1]
+
 
 	ttl = time.Duration(timer) * time.Second
 	go func() {
@@ -123,9 +131,9 @@ func startMiner() {
 	endMiner = now.Add(ttl)
 
 	if len(c.StatRpcUrl) > 0 {
-		mineCmd = exec.Command("DynMiner2.exe", "-mode", "solo", "-server", c.NodeUrl, "-user", c.NodeUser, "-pass", c.NodePass, "-wallet", c.WalletAddr, "-miner", minerArgs, "-statrpcurl", c.StatRpcUrl, "-minername", minerName)
+		mineCmd = exec.Command("DynMiner2.exe", "-mode", "solo", "-server", c.NodeUrl, "-user", c.NodeUser, "-pass", c.NodePass, "-wallet", c.WalletAddr, "-miner", c.MinerOpts, "-statrpcurl", c.StatRpcUrl, "-minername", c.MinerName)
 	} else {
-		mineCmd = exec.Command("DynMiner2.exe", "-mode", "solo", "-server", c.NodeUrl, "-user", c.NodeUser, "-pass", c.NodePass, "-wallet", c.WalletAddr, "-miner", minerArgs)
+		mineCmd = exec.Command("DynMiner2.exe", "-mode", "solo", "-server", c.NodeUrl, "-user", c.NodeUser, "-pass", c.NodePass, "-wallet", c.WalletAddr, "-miner", c.MinerOpts)
 	}
 
 	log.Printf("Executing %q - will end at %s", mineCmd.String(), endMiner)
