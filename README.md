@@ -1,5 +1,6 @@
 # dmo-wrapminer
-DynMiner wrapping utility to ease setting configuration options for DynMiner and manage restarting the miner as neccesary
+DynMiner wrapping utility to ease setting configuration options for DynMiner and manage restarting the miner as neccesary.
+It will auto-restart your miner every *X* seconds based on config or will automatically restart it any time it crashes.
 
 This is an *alpha* release at this point.
 
