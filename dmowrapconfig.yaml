@@ -4,6 +4,9 @@ NodeUser: username
 NodePass: password
 WalletAddr: somereceivingaddress
 
+# Miner Options for DynMiner, eg: "GPU,65536,64,0,0" or "CPU,16"
+MinerOpts: GPU,8192,8,0,0
+
 # DMO-monitor info
 # NOTE: Leave blank if you are not using a DynMiner executable that supports dmo-monitor integration
 StatRpcUrl: http://192.168.1.174:11235/minerstats
