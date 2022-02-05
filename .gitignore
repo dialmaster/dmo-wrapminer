@@ -1,4 +1,5 @@
 mydmowrapconfig.yaml
 *.exe
+dmo-wrapminer*
 dyn_miner2.cl
 release/

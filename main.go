@@ -1,15 +1,21 @@
 package main
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
-	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"log"
+	"net/http"
 	"net/url"
 	"os"
 	"os/exec"
 	"sync"
 	"time"
+
+	"gopkg.in/yaml.v2"
+
+	"github.com/gin-gonic/gin"
 )
 
 var configFile string
@@ -48,27 +54,31 @@ type conf struct {
 	MinerOpts      string `yaml:"MinerOpts"`
 	RespawnSeconds int    `yaml:"RespawnSeconds"`
 	MinerName      string `yaml:"MinerName"`
+	CloudKey       string `yaml:"CloudKey"`
 }
 
-func (c *conf) getConf() *conf {
-	_, err := os.Stat(configFile);
+func (myConfig *conf) getConf() *conf {
+	_, err := os.Stat(configFile)
 
 	fmt.Printf("Using config %s\n", configFile)
 	yamlFile, err := ioutil.ReadFile(configFile)
 	if err != nil {
 		log.Fatalf("Unable to open config file   #%v ", err)
 	}
-	err = yaml.Unmarshal(yamlFile, c)
+	err = yaml.Unmarshal(yamlFile, myConfig)
 	if err != nil {
 		log.Fatalf("Config file invalid format: %v", err)
 	}
 
-	return c
+	return myConfig
 }
 
-var c conf
+var myConfig conf
 
 func main() {
+	//gin.SetMode(gin.ReleaseMode)
+	router := gin.Default()
+
 	var args = os.Args[1:]
 	if len(args) != 1 {
 		fmt.Fprintf(os.Stderr, "Usage: %s <config file>\n", os.Args[0])
@@ -81,14 +91,9 @@ func main() {
 
 	configFile = args[0]
 
-	c.getConf()
+	myConfig.getConf()
 	// I NEED TO ADD VALIDATION OF CONFIG OPTIONS AND DEFAULTS!!!
-
-
-	var timer = c.RespawnSeconds
-
-
-
+	var timer = myConfig.RespawnSeconds
 	ttl = time.Duration(timer) * time.Second
 	go func() {
 		var minerOn time.Duration
@@ -100,21 +105,79 @@ func main() {
 			minerOn += dur
 		}
 	}()
-	time.Sleep(1)
+	time.Sleep(1 * time.Second)
 
-	for {
-		m.Lock()
-		if time.Now().After(endMiner) {
-			if mineCmd != nil {
-				log.Printf("Killing miner")
-				mineCmd.Process.Kill()
-				mineCmd = nil
+	// Kill the miner every whatever seconds....
+	go func() {
+
+		for {
+			m.Lock()
+			if time.Now().After(endMiner) {
+				if mineCmd != nil {
+					log.Printf("Killing miner")
+					mineCmd.Process.Kill()
+					mineCmd = nil
+				}
 			}
-		}
-		m.Unlock()
+			m.Unlock()
 
-		time.Sleep(time.Second * 5)
+			time.Sleep(time.Second * 5)
+		}
+	}()
+
+	router.POST("/forwardminerstats", forwardMinerStatsRPC)
+	router.Run(":18419")
+
+}
+
+type mineRpc struct {
+	Name        string
+	Hashrate    int
+	HashrateStr string
+	Accept      int
+	Reject      int
+	Submit      int
+	CloudKey    string
+}
+
+// Accept stat request from miner, add cloud key, passthrough to dmo-monitor.. maybe do other stuff
+func forwardMinerStatsRPC(c *gin.Context) {
+	var thisStat mineRpc
+	if err := c.BindJSON(&thisStat); err != nil {
+		fmt.Printf("Got unhandled (bad) request!")
+		return
 	}
+
+	fmt.Printf("Got incoming stats from miner, passing on to monitor: %v", thisStat)
+	thisStat.CloudKey = "Testing123Dial"
+
+	// Cloud Key and Local Monitor are mutually exclusive settings...
+	urlString := myConfig.StatRpcUrl
+	if len(myConfig.CloudKey) > 0 {
+		reqUrl := url.URL{
+			Scheme: "http",
+			// This will, in the end, be pointed at dmo-monitor.com, but for now point at my own monitor
+			Host: "192.168.1.174:11235",
+			Path: "minerstats",
+		}
+		urlString = reqUrl.String()
+	}
+
+	payloadBuf := new(bytes.Buffer)
+	json.NewEncoder(payloadBuf).Encode(thisStat)
+	req, _ := http.NewRequest("POST", urlString, payloadBuf)
+
+	client := &http.Client{}
+	res, e := client.Do(req)
+	if e != nil {
+		fmt.Printf("Some error trying to pass through to monitor...\n")
+		return
+	}
+
+	defer res.Body.Close()
+
+	fmt.Println("response Status:", res.Status)
+
 }
 
 func startMiner() {
@@ -125,11 +188,21 @@ func startMiner() {
 
 	endMiner = now.Add(ttl)
 
-	if len(c.StatRpcUrl) > 0 {
-		mineCmd = exec.Command("DynMiner2.exe", "-mode", "solo", "-server", c.NodeUrl, "-user", c.NodeUser, "-pass", c.NodePass, "-wallet", c.WalletAddr, "-miner", c.MinerOpts, "-statrpcurl", c.StatRpcUrl, "-minername", c.MinerName)
-	} else {
-		mineCmd = exec.Command("DynMiner2.exe", "-mode", "solo", "-server", c.NodeUrl, "-user", c.NodeUser, "-pass", c.NodePass, "-wallet", c.WalletAddr, "-miner", c.MinerOpts)
+	// New way
+	minerArgs := make([]string, 0)
+	minerArgs = append(minerArgs, "-mode", "solo")
+	minerArgs = append(minerArgs, "-server", myConfig.NodeUrl)
+	minerArgs = append(minerArgs, "-user", myConfig.NodeUser)
+	minerArgs = append(minerArgs, "-pass", myConfig.NodePass)
+	minerArgs = append(minerArgs, "-wallet", myConfig.WalletAddr)
+	minerArgs = append(minerArgs, "-miner", myConfig.MinerOpts)
+	if len(myConfig.CloudKey) > 0 {
+		minerArgs = append(minerArgs, "-statrpcurl", "http://localhost:18419/forwardminerstats")
+	} else if len(myConfig.StatRpcUrl) > 0 {
+		minerArgs = append(minerArgs, "-statrpcurl", myConfig.StatRpcUrl+"minerstats")
 	}
+	minerArgs = append(minerArgs, "-minername", myConfig.MinerName)
+	mineCmd = exec.Command("DynMiner2.exe", minerArgs...)
 
 	log.Printf("Executing %q - will end at %s", mineCmd.String(), endMiner)
 	time.Sleep(time.Second * 1)
