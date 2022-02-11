@@ -107,27 +107,22 @@ func main() {
 		}
 	}()
 	time.Sleep(1 * time.Second)
-
-	// Kill the miner every whatever seconds....
-	go func() {
-
-		for {
-			m.Lock()
-			if time.Now().After(endMiner) {
-				if mineCmd != nil {
-					log.Printf("Killing miner")
-					mineCmd.Process.Kill()
-					mineCmd = nil
-				}
-			}
-			m.Unlock()
-
-			time.Sleep(time.Second * 5)
-		}
-	}()
-
 	router.POST("/forwardminerstats", forwardMinerStatsRPC)
 	router.Run(":18419")
+
+	for {
+		m.Lock()
+		if time.Now().After(endMiner) {
+			if mineCmd != nil {
+				log.Printf("Killing miner")
+				mineCmd.Process.Kill()
+				mineCmd = nil
+			}
+		}
+		m.Unlock()
+
+		time.Sleep(time.Second * 5)
+	}
 
 }
 
