@@ -76,7 +76,8 @@ func (myConfig *conf) getConf() *conf {
 var myConfig conf
 
 func main() {
-	//gin.SetMode(gin.ReleaseMode)
+	gin.SetMode(gin.ReleaseMode)
+	gin.DefaultWriter = ioutil.Discard
 	router := gin.Default()
 
 	var args = os.Args[1:]
@@ -137,7 +138,6 @@ type mineRpc struct {
 	Accept      int
 	Reject      int
 	Submit      int
-	CloudKey    string
 }
 
 // Accept stat request from miner, add cloud key, passthrough to dmo-monitor.. maybe do other stuff
@@ -148,11 +148,8 @@ func forwardMinerStatsRPC(c *gin.Context) {
 		return
 	}
 
-	fmt.Printf("Got incoming stats from miner, passing on to monitor: %v", thisStat)
-	thisStat.CloudKey = "Testing123Dial"
-
 	// Cloud Key and Local Monitor are mutually exclusive settings...
-	urlString := myConfig.StatRpcUrl
+	var urlString = ""
 	if len(myConfig.CloudKey) > 0 {
 		reqUrl := url.URL{
 			Scheme: "http",
@@ -161,11 +158,18 @@ func forwardMinerStatsRPC(c *gin.Context) {
 			Path: "minerstats",
 		}
 		urlString = reqUrl.String()
+	} else {
+		urlString = myConfig.StatRpcUrl
 	}
 
 	payloadBuf := new(bytes.Buffer)
 	json.NewEncoder(payloadBuf).Encode(thisStat)
 	req, _ := http.NewRequest("POST", urlString, payloadBuf)
+
+	if len(myConfig.CloudKey) > 0 {
+		var bearer = "Bearer " + myConfig.CloudKey
+		req.Header.Add("Authorization", bearer)
+	}
 
 	client := &http.Client{}
 	res, e := client.Do(req)
@@ -175,9 +179,6 @@ func forwardMinerStatsRPC(c *gin.Context) {
 	}
 
 	defer res.Body.Close()
-
-	fmt.Println("response Status:", res.Status)
-
 }
 
 func startMiner() {
