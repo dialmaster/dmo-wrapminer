@@ -26,6 +26,18 @@ var endMiner, endChkBlk time.Time
 var user, pass, gpu, globalUnits, localUnits, GPUID, walletaddr string
 var u *url.URL
 
+type mineRpc struct {
+	Name        string
+	Hashrate    int
+	HashrateStr string
+	Accept      int
+	Reject      int
+	Submit      int
+}
+
+var accumStats mineRpc
+var lastStats mineRpc
+
 /* DynMiner2.exe args for reference:
 -mode [solo|stratum]
 -server <rpc server URL or stratum IP>
@@ -80,6 +92,13 @@ func main() {
 	gin.DefaultWriter = ioutil.Discard
 	router := gin.Default()
 
+	accumStats.Accept = 0
+	lastStats.Accept = 0
+	accumStats.Reject = 0
+	lastStats.Reject = 0
+	accumStats.Submit = 0
+	lastStats.Submit = 0
+
 	var args = os.Args[1:]
 	if len(args) != 1 {
 		fmt.Fprintf(os.Stderr, "Usage: %s <config file>\n", os.Args[0])
@@ -93,7 +112,7 @@ func main() {
 	configFile = args[0]
 
 	myConfig.getConf()
-	// I NEED TO ADD VALIDATION OF CONFIG OPTIONS AND DEFAULTS!!!
+
 	var timer = myConfig.RespawnSeconds
 	ttl = time.Duration(timer) * time.Second
 	go func() {
@@ -106,42 +125,42 @@ func main() {
 			minerOn += dur
 		}
 	}()
-	time.Sleep(1 * time.Second)
+
+	go func() {
+		time.Sleep(2 * time.Second)
+
+		for {
+			m.Lock()
+			if time.Now().After(endMiner) {
+				if mineCmd != nil {
+					mineCmd.Process.Kill()
+					mineCmd = nil
+				}
+			}
+			m.Unlock()
+
+			time.Sleep(time.Second * 5)
+		}
+	}()
+
 	router.POST("/forwardminerstats", forwardMinerStatsRPC)
 	router.Run(":18419")
 
-	for {
-		m.Lock()
-		if time.Now().After(endMiner) {
-			if mineCmd != nil {
-				log.Printf("Killing miner")
-				mineCmd.Process.Kill()
-				mineCmd = nil
-			}
-		}
-		m.Unlock()
-
-		time.Sleep(time.Second * 5)
-	}
-
-}
-
-type mineRpc struct {
-	Name        string
-	Hashrate    int
-	HashrateStr string
-	Accept      int
-	Reject      int
-	Submit      int
 }
 
 // Accept stat request from miner, add cloud key, passthrough to dmo-monitor.. maybe do other stuff
 func forwardMinerStatsRPC(c *gin.Context) {
 	var thisStat mineRpc
 	if err := c.BindJSON(&thisStat); err != nil {
-		fmt.Printf("Got unhandled (bad) request!")
+		fmt.Printf("Error decoding JSON from miner: %s", err.Error())
 		return
 	}
+
+	lastStats = thisStat
+
+	thisStat.Accept += accumStats.Accept
+	thisStat.Submit += accumStats.Submit
+	thisStat.Reject += accumStats.Reject
 
 	// Cloud Key and Local Monitor are mutually exclusive settings...
 	var urlString = ""
@@ -169,7 +188,7 @@ func forwardMinerStatsRPC(c *gin.Context) {
 	client := &http.Client{}
 	res, e := client.Do(req)
 	if e != nil {
-		fmt.Printf("Some error trying to pass through to monitor...\n")
+		fmt.Printf("Unable to forward request from miner to monitor: %s\n", e.Error())
 		return
 	}
 
@@ -183,6 +202,10 @@ func startMiner() {
 	var now = time.Now()
 
 	endMiner = now.Add(ttl)
+
+	accumStats.Accept += lastStats.Accept
+	accumStats.Reject += lastStats.Reject
+	accumStats.Submit += lastStats.Submit
 
 	// New way
 	minerArgs := make([]string, 0)
