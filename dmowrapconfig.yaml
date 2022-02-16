@@ -5,16 +5,14 @@ NodePass: password
 WalletAddr: somereceivingaddress
 
 # Miner Options for DynMiner, eg: "GPU,65536,64,0,0" or "CPU,16"
-MinerOpts: GPU,8192,8,0,0
+MinerOpts: "GPU,8192,8,0,0"
 
 # How often to restart your miner
 RespawnSeconds: 1200
 
-# DMO-monitor info: NOTE, leave both StatRpcUrl and CloudKey blank if using a version of DynMiner2.exe that does not support -statrpcurl
-
 # StatRpcUrl used for local/free version of dmo-monitor and should point at your running dmo-monitor
 StatRpcUrl: http://192.168.1.174:11235/ 
 # OR, your statRPCURL above will not be used if you have a CloudKey, this will pass through to dmo-monitor.com
-CloudKey: ILikeToPoopTheBed
+CloudKey: SOME_CLOUD_KEY
 
-MinerName: DialtestwrapCloud
+MinerName: MyCoolMiner
