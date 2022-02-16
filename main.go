@@ -22,9 +22,7 @@ var configFile string
 var m sync.Mutex
 var mineCmd *exec.Cmd
 var ttl time.Duration
-var endMiner, endChkBlk time.Time
-var user, pass, gpu, globalUnits, localUnits, GPUID, walletaddr string
-var u *url.URL
+var endMiner time.Time
 
 type mineRpc struct {
 	Name        string
@@ -70,12 +68,11 @@ type conf struct {
 }
 
 func (myConfig *conf) getConf() *conf {
-	_, err := os.Stat(configFile)
 
 	fmt.Printf("Using config %s\n", configFile)
 	yamlFile, err := ioutil.ReadFile(configFile)
 	if err != nil {
-		log.Fatalf("Unable to open config file   #%v ", err)
+		log.Fatalf("Unable to open config file  #%v ", err)
 	}
 	err = yaml.Unmarshal(yamlFile, myConfig)
 	if err != nil {
@@ -161,14 +158,13 @@ func forwardMinerStatsRPC(c *gin.Context) {
 	thisStat.Accept += accumStats.Accept
 	thisStat.Submit += accumStats.Submit
 	thisStat.Reject += accumStats.Reject
-
 	// Cloud Key and Local Monitor are mutually exclusive settings...
 	var urlString = ""
 	if len(myConfig.CloudKey) > 0 {
 		reqUrl := url.URL{
 			Scheme: "http",
 			// This will, in the end, be pointed at dmo-monitor.com, but for now point at my own monitor
-			Host: "192.168.1.174:11235",
+			Host: "68.186.0.45:11235",
 			Path: "minerstats",
 		}
 		urlString = reqUrl.String()
@@ -207,7 +203,6 @@ func startMiner() {
 	accumStats.Reject += lastStats.Reject
 	accumStats.Submit += lastStats.Submit
 
-	// New way
 	minerArgs := make([]string, 0)
 	minerArgs = append(minerArgs, "-mode", "solo")
 	minerArgs = append(minerArgs, "-server", myConfig.NodeUrl)
