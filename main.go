@@ -37,7 +37,7 @@ var accumStats mineRpc
 var lastStats mineRpc
 
 /* DynMiner2.exe args for reference:
--mode [solo|stratum]
+-mode [solo|stratum|pool]
 -server <rpc server URL or stratum IP>
 -port <rpc port>  [only used for stratum]
 -user <username>
@@ -51,20 +51,31 @@ var lastStats mineRpc
 <work size>, <platform id> and <device id> are not required for CPU
 
 -hiveos [0|1]   [optional, if 1 will format output for hiveos]
--statrpcurl <URL to send stats to> [optional]
 -minername <display name of miner> [required with statrpcurl]
+
+Example Pool:
+DynMiner3.exe -mode pool -server pool1.dynamocoin.org -port 4567 -user dy1q96w73wf4s4m4yhtzl7xpcwuw3hzsr2tarmssdw -miner CPU,16
+
+Example Stratum:
+-mode stratum -server us-east.deepfields.io -port 4234 -user dy1q4r6xahzwc94l872fnsk5aynsy7pqrngk8x8gt0.3090miner -pass d=3 -miner GPU,32768,128,0,0
+
+
 */
 
 type conf struct {
-	NodeUrl        string `yaml:"NodeUrl"`
-	NodeUser       string `yaml:"NodeUser"`
-	NodePass       string `yaml:"NodePass"`
-	WalletAddr     string `yaml:"WalletAddr"`
-	StatRpcUrl     string `yaml:"StatRpcUrl"`
-	MinerOpts      string `yaml:"MinerOpts"`
-	RespawnSeconds int    `yaml:"RespawnSeconds"`
-	MinerName      string `yaml:"MinerName"`
-	CloudKey       string `yaml:"CloudKey"`
+	DynMiner       string   `yaml:"DynMiner"`
+	Mode           string   `yaml:"Mode"`
+	NodeUrl        string   `yaml:"NodeUrl"`
+	NodeUser       string   `yaml:"NodeUser"`
+	NodePass       string   `yaml:"NodePass"`
+	WalletAddr     string   `yaml:"WalletAddr"`
+	MinerOpts      []string `yaml:"MinerOpts,flow"`
+	RespawnSeconds int      `yaml:"RespawnSeconds"`
+	MinerName      string   `yaml:"MinerName"`
+	CloudKey       string   `yaml:"CloudKey"`
+	PoolServer     string   `yaml:"PoolServer"`
+	PoolPort       string   `yaml:"PoolPort"`
+	StartingDiff   string   `yaml:"StartingDiff"`
 }
 
 func (myConfig *conf) getConf() *conf {
@@ -77,6 +88,17 @@ func (myConfig *conf) getConf() *conf {
 	err = yaml.Unmarshal(yamlFile, myConfig)
 	if err != nil {
 		log.Fatalf("Config file invalid format: %v", err)
+	}
+
+	if myConfig.Mode != "solo" && myConfig.Mode != "pool" && myConfig.Mode != "stratum" {
+		fmt.Fprintf(os.Stderr, "Mode option from config MUST be one of: solo, pool or stratum\n")
+		os.Exit(1)
+	}
+
+	_, err = os.Stat(myConfig.DynMiner)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "DynMiner: '%s' not found.\n", myConfig.DynMiner)
+		os.Exit(1)
 	}
 
 	return myConfig
@@ -99,7 +121,6 @@ func main() {
 	var args = os.Args[1:]
 	if len(args) != 1 {
 		fmt.Fprintf(os.Stderr, "Usage: %s <config file>\n", os.Args[0])
-		fmt.Fprintf(os.Stderr, "Note: This does NOT yet support pool mining or HIVE options\n")
 		fmt.Fprintln(os.Stderr, "")
 		fmt.Fprintln(os.Stderr, "Example:")
 		fmt.Fprintf(os.Stderr, "    %s test_miner.yaml\n", os.Args[0])
@@ -140,8 +161,14 @@ func main() {
 		}
 	}()
 
-	router.POST("/forwardminerstats", forwardMinerStatsRPC)
-	router.Run(":18419")
+	if len(myConfig.CloudKey) > 0 {
+		router.POST("/forwardminerstats", forwardMinerStatsRPC)
+		router.Run(":18419")
+	} else {
+		for {
+			time.Sleep(100 * time.Millisecond)
+		}
+	}
 
 }
 
@@ -158,7 +185,7 @@ func forwardMinerStatsRPC(c *gin.Context) {
 	thisStat.Accept += accumStats.Accept
 	thisStat.Submit += accumStats.Submit
 	thisStat.Reject += accumStats.Reject
-	// Cloud Key and Local Monitor are mutually exclusive settings...
+
 	var urlString = ""
 	if len(myConfig.CloudKey) > 0 {
 		reqUrl := url.URL{
@@ -168,8 +195,6 @@ func forwardMinerStatsRPC(c *gin.Context) {
 			Path: "minerstats",
 		}
 		urlString = reqUrl.String()
-	} else {
-		urlString = myConfig.StatRpcUrl
 	}
 
 	payloadBuf := new(bytes.Buffer)
@@ -204,19 +229,43 @@ func startMiner() {
 	accumStats.Submit += lastStats.Submit
 
 	minerArgs := make([]string, 0)
-	minerArgs = append(minerArgs, "-mode", "solo")
-	minerArgs = append(minerArgs, "-server", myConfig.NodeUrl)
-	minerArgs = append(minerArgs, "-user", myConfig.NodeUser)
-	minerArgs = append(minerArgs, "-pass", myConfig.NodePass)
-	minerArgs = append(minerArgs, "-wallet", myConfig.WalletAddr)
-	minerArgs = append(minerArgs, "-miner", myConfig.MinerOpts)
+	minerArgs = append(minerArgs, "-mode", myConfig.Mode)
+
+	if myConfig.Mode == "solo" {
+		minerArgs = append(minerArgs, "-server", myConfig.NodeUrl)
+		minerArgs = append(minerArgs, "-user", myConfig.NodeUser)
+		minerArgs = append(minerArgs, "-pass", myConfig.NodePass)
+		minerArgs = append(minerArgs, "-wallet", myConfig.WalletAddr)
+	}
+
+	if myConfig.Mode == "pool" || myConfig.Mode == "stratum" {
+		minerArgs = append(minerArgs, "-server", myConfig.PoolServer)
+		minerArgs = append(minerArgs, "-port", myConfig.PoolPort)
+	}
+
+	//DynMiner3.exe -mode pool -server pool1.dynamocoin.org -port 4567 -user dy1q96w73wf4s4m4yhtzl7xpcwuw3hzsr2tarmssdw -miner CPU,16
+	if myConfig.Mode == "pool" {
+		minerArgs = append(minerArgs, "-user", myConfig.WalletAddr)
+	}
+
+	//-mode stratum -server us-east.deepfields.io -port 4234 -user dy1q4r6xahzwc94l872fnsk5aynsy7pqrngk8x8gt0.3090miner -pass d=3 -miner GPU,32768,128,0,0
+	if myConfig.Mode == "stratum" {
+		minerArgs = append(minerArgs, "-user", myConfig.WalletAddr+"."+myConfig.MinerName)
+		minerArgs = append(minerArgs, "-pass", "-d="+myConfig.StartingDiff)
+	}
+
+	// Used for any miner mode...
+	for _, opts := range myConfig.MinerOpts {
+		minerArgs = append(minerArgs, "-miner", opts)
+	}
+
+	// DMO Monitor support
 	if len(myConfig.CloudKey) > 0 {
 		minerArgs = append(minerArgs, "-statrpcurl", "http://localhost:18419/forwardminerstats")
-	} else if len(myConfig.StatRpcUrl) > 0 {
-		minerArgs = append(minerArgs, "-statrpcurl", myConfig.StatRpcUrl+"minerstats")
+		minerArgs = append(minerArgs, "-minername", myConfig.MinerName)
 	}
-	minerArgs = append(minerArgs, "-minername", myConfig.MinerName)
-	mineCmd = exec.Command("DynMiner2.exe", minerArgs...)
+
+	mineCmd = exec.Command(myConfig.DynMiner, minerArgs...)
 
 	log.Printf("Executing %q - will end at %s", mineCmd.String(), endMiner)
 	time.Sleep(time.Second * 1)

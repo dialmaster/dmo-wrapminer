@@ -1,18 +1,34 @@
-# Full node info
+# The name of your DynMiner executable
+DynMiner: DynMiner2.exe
+
+# This is the wallet to mine to, used for ALL MODES
+WalletAddr: somereceivingaddress
+
+# Mode should be either: solo, pool, or stratum
+Mode: solo
+
+# Full node info, required for solo mining, can be left blank if pool or stratum mining
 NodeUrl: http://192.168.1.150:6434
 NodeUser: username
 NodePass: password
-WalletAddr: somereceivingaddress
+
+# MinerName is used when pool mining and/or using dmo monitor
+MinerName: MyCoolMiner
+
+# Pool or Stratum Options, can be left blank if solo mining
+PoolServer: us-east.deepfields.io
+PoolPort: 4234
+StartingDiff: 3
 
 # Miner Options for DynMiner, eg: "GPU,65536,64,0,0" or "CPU,16"
-MinerOpts: "GPU,8192,8,0,0"
+# To multi-gpu mine, just add more values to the array below like this
+#MinerOpts: ["GPU,8192,8,0,0","GPU,32768,16,0,1"]
+MinerOpts: ["GPU,8192,8,0,0"]
 
 # How often to restart your miner
 RespawnSeconds: 1200
 
-# StatRpcUrl used for local/free version of dmo-monitor and should point at your running dmo-monitor
-StatRpcUrl: http://192.168.1.174:11235/ 
-# OR, your statRPCURL above will not be used if you have a CloudKey, this will pass through to dmo-monitor.com
+# DMO Monitor Related Options -- leave blank if not using dmo-monitor
 CloudKey: SOME_CLOUD_KEY
 
-MinerName: MyCoolMiner
+
