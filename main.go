@@ -78,6 +78,9 @@ type conf struct {
 	StartingDiff   string   `yaml:"StartingDiff"`
 }
 
+//TODO: Add support for yiimp solo like:
+// -pass d=3,m=solo
+
 func (myConfig *conf) getConf() *conf {
 
 	fmt.Printf("Using config %s\n", configFile)
@@ -189,9 +192,9 @@ func forwardMinerStatsRPC(c *gin.Context) {
 	var urlString = ""
 	if len(myConfig.CloudKey) > 0 {
 		reqUrl := url.URL{
-			Scheme: "http",
+			Scheme: "https",
 			// This will, in the end, be pointed at dmo-monitor.com, but for now point at my own monitor
-			Host: "68.186.0.45:11235",
+			Host: "dmo-monitor.com",
 			Path: "minerstats",
 		}
 		urlString = reqUrl.String()

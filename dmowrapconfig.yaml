@@ -7,23 +7,13 @@ WalletAddr: somereceivingaddress
 # Mode should be either: solo, pool, or stratum
 Mode: solo
 
-# Full node info, required for solo mining, can be left blank if pool or stratum mining
-NodeUrl: http://192.168.1.150:6434
-NodeUser: username
-NodePass: password
-
-# MinerName is used when pool mining and/or using dmo monitor
-MinerName: MyCoolMiner
-
-# Pool or Stratum Options, can be left blank if solo mining
-PoolServer: us-east.deepfields.io
-PoolPort: 4234
-StartingDiff: 3
-
 # Miner Options for DynMiner, eg: "GPU,65536,64,0,0" or "CPU,16"
 # To multi-gpu mine, just add more values to the array below like this
 #MinerOpts: ["GPU,8192,8,0,0","GPU,32768,16,0,1"]
 MinerOpts: ["GPU,8192,8,0,0"]
+
+# MinerName is used when pool mining and/or using dmo monitor
+MinerName: MyCoolMiner
 
 # How often to restart your miner
 RespawnSeconds: 1200
@@ -31,4 +21,15 @@ RespawnSeconds: 1200
 # DMO Monitor Related Options -- leave blank if not using dmo-monitor
 CloudKey: SOME_CLOUD_KEY
 
+## Solo Mining Fullnode info, can be ignored or removed for pool/stratum mining
+NodeUrl: http://192.168.1.150:6434
+NodeUser: username
+NodePass: password
+## END Solo mining section
 
+
+## Pool or Stratum Options, can be ignored or removed for solo mining against a local node
+PoolServer: us-east.deepfields.io
+PoolPort: 4234
+StartingDiff: 3
+##  END Pool/Stratum section
