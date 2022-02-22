@@ -164,7 +164,7 @@ func main() {
 		}
 	}()
 
-	if len(myConfig.CloudKey) > 0 {
+	if len(myConfig.CloudKey) > 0 && myConfig.CloudKey != "SOME_CLOUD_KEY" {
 		router.POST("/forwardminerstats", forwardMinerStatsRPC)
 		router.Run(":18419")
 	} else {
@@ -190,7 +190,7 @@ func forwardMinerStatsRPC(c *gin.Context) {
 	thisStat.Reject += accumStats.Reject
 
 	var urlString = ""
-	if len(myConfig.CloudKey) > 0 {
+	if len(myConfig.CloudKey) > 0 && myConfig.CloudKey != "SOME_CLOUD_KEY" {
 		reqUrl := url.URL{
 			Scheme: "https",
 			// This will, in the end, be pointed at dmo-monitor.com, but for now point at my own monitor
@@ -263,7 +263,7 @@ func startMiner() {
 	}
 
 	// DMO Monitor support
-	if len(myConfig.CloudKey) > 0 {
+	if len(myConfig.CloudKey) > 0 && myConfig.CloudKey != "SOME_CLOUD_KEY" {
 		minerArgs = append(minerArgs, "-statrpcurl", "http://localhost:18419/forwardminerstats")
 		minerArgs = append(minerArgs, "-minername", myConfig.MinerName)
 	}
