@@ -6,10 +6,12 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
 	"os/exec"
+	"strconv"
 	"sync"
 	"time"
 
@@ -35,6 +37,7 @@ type mineRpc struct {
 
 var accumStats mineRpc
 var lastStats mineRpc
+var myPort = 18419
 
 /* DynMiner2.exe args for reference:
 -mode [solo|stratum|pool]
@@ -130,6 +133,8 @@ func main() {
 		os.Exit(1)
 	}
 
+	findOpenPort()
+
 	configFile = args[0]
 
 	myConfig.getConf()
@@ -166,13 +171,33 @@ func main() {
 
 	if len(myConfig.CloudKey) > 0 && myConfig.CloudKey != "SOME_CLOUD_KEY" {
 		router.POST("/forwardminerstats", forwardMinerStatsRPC)
-		router.Run(":18419")
+		router.Run(":" + strconv.Itoa(myPort))
 	} else {
 		for {
 			time.Sleep(100 * time.Millisecond)
 		}
 	}
 
+}
+
+func findOpenPort() {
+	portsChecked := 0
+	for {
+		server, err := net.Listen("tcp", ":"+strconv.Itoa(myPort))
+		if err != nil {
+			myPort += 1
+			portsChecked += 1
+		} else {
+			fmt.Printf("Using port %d\n", myPort)
+			server.Close()
+			break
+		}
+		if portsChecked > 20 {
+			fmt.Printf("Unable to find open port to bind!\n")
+			os.Exit(1)
+		}
+
+	}
 }
 
 // Accept stat request from miner, add cloud key, passthrough to dmo-monitor.. maybe do other stuff
@@ -264,7 +289,7 @@ func startMiner() {
 
 	// DMO Monitor support
 	if len(myConfig.CloudKey) > 0 && myConfig.CloudKey != "SOME_CLOUD_KEY" {
-		minerArgs = append(minerArgs, "-statrpcurl", "http://localhost:18419/forwardminerstats")
+		minerArgs = append(minerArgs, "-statrpcurl", "http://localhost:"+strconv.Itoa(myPort)+"/forwardminerstats")
 		minerArgs = append(minerArgs, "-minername", myConfig.MinerName)
 	}
 
