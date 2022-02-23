@@ -17,6 +17,7 @@ import (
 
 	"gopkg.in/yaml.v2"
 
+	"github.com/denisbrodbeck/machineid"
 	"github.com/gin-gonic/gin"
 )
 
@@ -28,6 +29,7 @@ var endMiner time.Time
 
 type mineRpc struct {
 	Name        string
+	MinerID     string
 	Hashrate    int
 	HashrateStr string
 	Accept      int
@@ -112,6 +114,8 @@ func (myConfig *conf) getConf() *conf {
 
 var myConfig conf
 
+var minerID string
+
 func main() {
 	gin.SetMode(gin.ReleaseMode)
 	gin.DefaultWriter = ioutil.Discard
@@ -138,6 +142,11 @@ func main() {
 	configFile = args[0]
 
 	myConfig.getConf()
+
+	machineID, _ := machineid.ProtectedID("dmo-wrapminer")
+	minerID = myConfig.MinerName + "-" + strconv.Itoa(myPort) + "-" + machineID
+
+	fmt.Printf("MinerID is: %s\n", minerID)
 
 	var timer = myConfig.RespawnSeconds
 	ttl = time.Duration(timer) * time.Second
@@ -213,6 +222,7 @@ func forwardMinerStatsRPC(c *gin.Context) {
 	thisStat.Accept += accumStats.Accept
 	thisStat.Submit += accumStats.Submit
 	thisStat.Reject += accumStats.Reject
+	thisStat.MinerID = minerID
 
 	var urlString = ""
 	if len(myConfig.CloudKey) > 0 && myConfig.CloudKey != "SOME_CLOUD_KEY" {
