@@ -98,18 +98,41 @@ func (myConfig *conf) getConf() *conf {
 		log.Fatalf("Config file invalid format: %v", err)
 	}
 
+	validateConfig()
+
+	if len(myConfig.MinerName) > 2 && myConfig.MinerName[len(myConfig.MinerName)-1] == '$' && myConfig.MinerName[0] == '$' {
+		envName := myConfig.MinerName[1 : len(myConfig.MinerName)-1]
+		fmt.Printf("I should use an env variable for the miner name %s\n", envName)
+		envValue, ok := os.LookupEnv(envName)
+		if !ok {
+			fmt.Printf("WARNING: yaml config specified minerName from ENV but ENV value for %s was not found!\n", envName)
+			fmt.Printf("Defaulting miner name to %s\n", envName)
+			myConfig.MinerName = envName
+		} else {
+			fmt.Printf("Using MinerName from ENV: %s\n", envValue)
+			myConfig.MinerName = envValue
+		}
+	}
+
+	return myConfig
+}
+
+func validateConfig() {
 	if myConfig.Mode != "solo" && myConfig.Mode != "pool" && myConfig.Mode != "stratum" {
 		fmt.Fprintf(os.Stderr, "Mode option from config MUST be one of: solo, pool or stratum\n")
 		os.Exit(1)
 	}
 
-	_, err = os.Stat(myConfig.DynMiner)
+	_, err := os.Stat(myConfig.DynMiner)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "DynMiner: '%s' not found.\n", myConfig.DynMiner)
 		os.Exit(1)
 	}
 
-	return myConfig
+	if len(myConfig.MinerName) == 0 {
+		fmt.Printf("MinerName not set in config. Exiting\n")
+		os.Exit(1)
+	}
 }
 
 var myConfig conf

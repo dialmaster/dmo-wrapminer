@@ -13,6 +13,10 @@ Mode: solo
 MinerOpts: ["GPU,8192,8,0,0"]
 
 # MinerName is used when pool mining and/or using dmo monitor
+# NOTE You can use a minername pulled from an environment variable here.
+# To do go, please surround the environment variable you wish to pull the minername from in $ as follows:
+# In this example, the environment variable is COMPUTERNAME
+# MinerName: $COMPUTERNAME$
 MinerName: MyCoolMiner
 
 # How often to restart your miner. Use 0 to never restart
