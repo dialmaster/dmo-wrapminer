@@ -166,7 +166,7 @@ func main() {
 
 		for {
 			m.Lock()
-			if time.Now().After(endMiner) {
+			if time.Now().After(endMiner) && myConfig.RespawnSeconds != 0 {
 				if mineCmd != nil {
 					mineCmd.Process.Kill()
 					mineCmd = nil
@@ -228,9 +228,8 @@ func forwardMinerStatsRPC(c *gin.Context) {
 	if len(myConfig.CloudKey) > 0 && myConfig.CloudKey != "SOME_CLOUD_KEY" {
 		reqUrl := url.URL{
 			Scheme: "https",
-			// This will, in the end, be pointed at dmo-monitor.com, but for now point at my own monitor
-			Host: "dmo-monitor.com",
-			Path: "minerstats",
+			Host:   "dmo-monitor.com",
+			Path:   "minerstats",
 		}
 		urlString = reqUrl.String()
 	}
