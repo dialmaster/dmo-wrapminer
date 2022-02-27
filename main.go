@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
 	"net"
@@ -14,6 +15,8 @@ import (
 	"strconv"
 	"sync"
 	"time"
+
+	"github.com/blang/semver/v4"
 
 	"gopkg.in/yaml.v2"
 
@@ -40,7 +43,7 @@ type mineRpc struct {
 var accumStats mineRpc
 var lastStats mineRpc
 var myPort = 18419
-var version = "1.0.0"
+var myVersion = "1.1.0"
 
 /* DynMiner2.exe args for reference:
 -mode [solo|stratum|pool]
@@ -140,7 +143,9 @@ var myConfig conf
 var minerID string
 
 func main() {
-	fmt.Printf("dmo-wrapminer version %s\n", version)
+
+	fmt.Printf("Running dmo-wrapminer version: %s\n\n", myVersion)
+	checkVersion()
 	gin.SetMode(gin.ReleaseMode)
 	gin.DefaultWriter = ioutil.Discard
 	router := gin.Default()
@@ -233,6 +238,48 @@ func findOpenPort() {
 	}
 }
 
+func checkVersion() {
+
+	type wrapVersion struct {
+		Version string `json:"Version"`
+	}
+
+	var curVersion wrapVersion
+
+	reqUrl := url.URL{
+		//Scheme: "http",
+		//Host:   "localhost:11235",
+		Scheme: "https",
+		Host:   "dmo-monitor.com",
+		Path:   "dmowrapversioncheck",
+	}
+	urlString := reqUrl.String()
+	resp, err := http.Get(urlString)
+
+	if err != nil {
+		fmt.Printf("Failed request to dmo-monitor for version check: %s", err.Error())
+		return
+	}
+
+	bodyText, err := io.ReadAll(resp.Body)
+	if err != nil {
+		fmt.Printf("Failed request to dmo-monitor for version check: %s", err.Error())
+		return
+	}
+
+	if err := json.Unmarshal(bodyText, &curVersion); err != nil {
+		fmt.Printf("Failed request to dmo-monitor for version check: %s", err.Error())
+		return
+	}
+
+	myV, _ := semver.Make(myVersion)
+	curV, _ := semver.Make(curVersion.Version)
+	if myV.LT(curV) {
+		fmt.Printf("NOTE: A new dmo-wrapminer version %s is available from https://dmo-monitor.com/wrapminer !!\n\n", curVersion.Version)
+	}
+
+}
+
 // Accept stat request from miner, add cloud key, passthrough to dmo-monitor.. maybe do other stuff
 func forwardMinerStatsRPC(c *gin.Context) {
 	var thisStat mineRpc
@@ -251,6 +298,8 @@ func forwardMinerStatsRPC(c *gin.Context) {
 	var urlString = ""
 	if len(myConfig.CloudKey) > 0 && myConfig.CloudKey != "SOME_CLOUD_KEY" {
 		reqUrl := url.URL{
+			//Scheme: "http",
+			//Host:   "localhost:11235",
 			Scheme: "https",
 			Host:   "dmo-monitor.com",
 			Path:   "minerstats",
