@@ -40,6 +40,7 @@ type mineRpc struct {
 var accumStats mineRpc
 var lastStats mineRpc
 var myPort = 18419
+var version = "1.0.0"
 
 /* DynMiner2.exe args for reference:
 -mode [solo|stratum|pool]
@@ -102,7 +103,6 @@ func (myConfig *conf) getConf() *conf {
 
 	if len(myConfig.MinerName) > 2 && myConfig.MinerName[len(myConfig.MinerName)-1] == '$' && myConfig.MinerName[0] == '$' {
 		envName := myConfig.MinerName[1 : len(myConfig.MinerName)-1]
-		fmt.Printf("I should use an env variable for the miner name %s\n", envName)
 		envValue, ok := os.LookupEnv(envName)
 		if !ok {
 			fmt.Printf("WARNING: yaml config specified minerName from ENV but ENV value for %s was not found!\n", envName)
@@ -140,6 +140,7 @@ var myConfig conf
 var minerID string
 
 func main() {
+	fmt.Printf("dmo-wrapminer version %s\n", version)
 	gin.SetMode(gin.ReleaseMode)
 	gin.DefaultWriter = ioutil.Discard
 	router := gin.Default()

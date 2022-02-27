@@ -1,0 +1,18 @@
+## Version 1.1.0
+
+**Date of release:** `Saturday 26 February 2022`
+
+**Description:** `Version 1.1.0`
+
+### Included features
+
+---
+
+## Version 1.0.0
+
+**Date of release:** `Saturday 26 February 2022`
+
+**Description:** `Initial Versioned Release`
+
+### Included features
+1. Add version string to application
