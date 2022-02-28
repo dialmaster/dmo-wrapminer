@@ -1,3 +1,15 @@
+
+## Version 1.2.0
+
+**Date of release:** `Sunday 27 February 2022`
+
+**Description:** `Version 1.2.0`
+
+### Included features
+1. Added support for SRBMiner
+
+---
+
 ## Version 1.1.0
 
 **Date of release:** `Saturday 26 February 2022`

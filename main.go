@@ -43,48 +43,26 @@ type mineRpc struct {
 var accumStats mineRpc
 var lastStats mineRpc
 var myPort = 18419
-var myVersion = "1.1.0"
-
-/* DynMiner2.exe args for reference:
--mode [solo|stratum|pool]
--server <rpc server URL or stratum IP>
--port <rpc port>  [only used for stratum]
--user <username>
--pass <password>
--diff <initial difficulty>  [optional]
--wallet <wallet address>   [only used for solo]
--miner <miner params>
-
-<miner params> format:
-[CPU|GPU],<cores or compute units>[<work size>,<platform id>,<device id>[,<loops>]]
-<work size>, <platform id> and <device id> are not required for CPU
-
--hiveos [0|1]   [optional, if 1 will format output for hiveos]
--minername <display name of miner> [required with statrpcurl]
-
-Example Pool:
-DynMiner3.exe -mode pool -server pool1.dynamocoin.org -port 4567 -user dy1q96w73wf4s4m4yhtzl7xpcwuw3hzsr2tarmssdw -miner CPU,16
-
-Example Stratum:
--mode stratum -server us-east.deepfields.io -port 4234 -user dy1q4r6xahzwc94l872fnsk5aynsy7pqrngk8x8gt0.3090miner -pass d=3 -miner GPU,32768,128,0,0
-
-
-*/
+var myVersion = "1.2.0"
 
 type conf struct {
-	DynMiner       string   `yaml:"DynMiner"`
-	Mode           string   `yaml:"Mode"`
-	NodeUrl        string   `yaml:"NodeUrl"`
-	NodeUser       string   `yaml:"NodeUser"`
-	NodePass       string   `yaml:"NodePass"`
-	WalletAddr     string   `yaml:"WalletAddr"`
-	MinerOpts      []string `yaml:"MinerOpts,flow"`
-	RespawnSeconds int      `yaml:"RespawnSeconds"`
-	MinerName      string   `yaml:"MinerName"`
-	CloudKey       string   `yaml:"CloudKey"`
-	PoolServer     string   `yaml:"PoolServer"`
-	PoolPort       string   `yaml:"PoolPort"`
-	StartingDiff   string   `yaml:"StartingDiff"`
+	DynMiner          string   `yaml:"DynMiner"`
+	Mode              string   `yaml:"Mode"`
+	NodeUrl           string   `yaml:"NodeUrl"`
+	NodeUser          string   `yaml:"NodeUser"`
+	NodePass          string   `yaml:"NodePass"`
+	WalletAddr        string   `yaml:"WalletAddr"`
+	MinerOpts         []string `yaml:"MinerOpts,flow"`
+	RespawnSeconds    int      `yaml:"RespawnSeconds"`
+	MinerName         string   `yaml:"MinerName"`
+	CloudKey          string   `yaml:"CloudKey"`
+	PoolServer        string   `yaml:"PoolServer"`
+	PoolPort          string   `yaml:"PoolPort"`
+	StartingDiff      string   `yaml:"StartingDiff"`
+	SRBMiner          string   `yaml:"SRBMiner"`
+	SRBPoolUrl        string   `yaml:"SRBPoolUrl"`
+	SRBMode           string   `yaml:"SRBMode"`
+	SRBAdditionalOpts []string `yaml:"SRBAdditionalOpts,flow"`
 }
 
 //TODO: Add support for yiimp solo like:
@@ -121,21 +99,40 @@ func (myConfig *conf) getConf() *conf {
 }
 
 func validateConfig() {
-	if myConfig.Mode != "solo" && myConfig.Mode != "pool" && myConfig.Mode != "stratum" {
-		fmt.Fprintf(os.Stderr, "Mode option from config MUST be one of: solo, pool or stratum\n")
+	if myConfig.Mode != "solo" && myConfig.Mode != "pool" && myConfig.Mode != "stratum" && myConfig.Mode != "SRB" {
+		fmt.Fprintf(os.Stderr, "Mode option from config MUST be one of: solo, stratum, or SRB\n")
 		os.Exit(1)
 	}
 
-	_, err := os.Stat(myConfig.DynMiner)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "DynMiner: '%s' not found.\n", myConfig.DynMiner)
+	if myConfig.Mode != "SRB" {
+		_, err := os.Stat(myConfig.DynMiner)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "DynMiner: '%s' not found.\n", myConfig.DynMiner)
+			os.Exit(1)
+		}
+	} else {
+		_, err := os.Stat(myConfig.SRBMiner)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "SRBMiner: '%s' not found.\n", myConfig.SRBMiner)
+			os.Exit(1)
+		}
+		if myConfig.SRBMode != "GPU" && myConfig.SRBMode != "CPU" {
+			fmt.Fprintf(os.Stderr, "SRBMode must be set to either 'CPU' or 'GPU'\n")
+			os.Exit(1)
+		}
+	}
+
+	if len(myConfig.WalletAddr) == 0 {
+		fmt.Printf("WalletAddr not set in config. Exiting\n")
 		os.Exit(1)
+
 	}
 
 	if len(myConfig.MinerName) == 0 {
 		fmt.Printf("MinerName not set in config. Exiting\n")
 		os.Exit(1)
 	}
+
 }
 
 var myConfig conf
@@ -204,6 +201,9 @@ func main() {
 			m.Unlock()
 
 			time.Sleep(time.Second * 5)
+			if myConfig.Mode == "SRB" && len(myConfig.CloudKey) > 0 && myConfig.CloudKey != "SOME_CLOUD_KEY" {
+				getSRBStats()
+			}
 		}
 	}()
 
@@ -294,7 +294,10 @@ func forwardMinerStatsRPC(c *gin.Context) {
 	thisStat.Submit += accumStats.Submit
 	thisStat.Reject += accumStats.Reject
 	thisStat.MinerID = minerID
+	sendMyStatsToMonitor(thisStat)
+}
 
+func sendMyStatsToMonitor(thisStat mineRpc) {
 	var urlString = ""
 	if len(myConfig.CloudKey) > 0 && myConfig.CloudKey != "SOME_CLOUD_KEY" {
 		reqUrl := url.URL{
@@ -329,15 +332,45 @@ func forwardMinerStatsRPC(c *gin.Context) {
 func startMiner() {
 	m.Lock()
 	defer m.Unlock()
-
 	var now = time.Now()
-
 	endMiner = now.Add(ttl)
 
 	accumStats.Accept += lastStats.Accept
 	accumStats.Reject += lastStats.Reject
 	accumStats.Submit += lastStats.Submit
 
+	if myConfig.Mode != "SRB" {
+		mineCmd = setupFoundationMiner()
+	} else {
+		mineCmd = setupSRBMiner()
+	}
+
+	log.Printf("Executing %q - will end at %s", mineCmd.String(), endMiner)
+	time.Sleep(time.Second * 1)
+	mineCmd.Stdout = os.Stdout
+	mineCmd.Stdout = os.Stdout
+	mineCmd.Start()
+}
+
+func setupSRBMiner() *exec.Cmd {
+	minerArgs := make([]string, 0)
+
+	minerArgs = append(minerArgs, "--api-enable")
+	minerArgs = append(minerArgs, "--algorithm", "dynamo")
+	if myConfig.SRBMode == "GPU" {
+		minerArgs = append(minerArgs, "--disable-cpu")
+	}
+
+	minerArgs = append(minerArgs, "--pool", myConfig.SRBPoolUrl)
+	minerArgs = append(minerArgs, "--wallet", myConfig.WalletAddr)
+	minerArgs = append(minerArgs, myConfig.SRBAdditionalOpts...)
+
+	mineCmd = exec.Command(myConfig.SRBMiner, minerArgs...)
+
+	return mineCmd
+}
+
+func setupFoundationMiner() *exec.Cmd {
 	minerArgs := make([]string, 0)
 	minerArgs = append(minerArgs, "-mode", myConfig.Mode)
 
@@ -374,12 +407,6 @@ func startMiner() {
 		minerArgs = append(minerArgs, "-statrpcurl", "http://localhost:"+strconv.Itoa(myPort)+"/forwardminerstats")
 		minerArgs = append(minerArgs, "-minername", myConfig.MinerName)
 	}
-
 	mineCmd = exec.Command(myConfig.DynMiner, minerArgs...)
-
-	log.Printf("Executing %q - will end at %s", mineCmd.String(), endMiner)
-	time.Sleep(time.Second * 1)
-	mineCmd.Stdout = os.Stdout
-	mineCmd.Stdout = os.Stdout
-	mineCmd.Start()
+	return mineCmd
 }

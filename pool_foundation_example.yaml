@@ -1,0 +1,30 @@
+# The name of your DynMiner executable
+DynMiner: "DynMiner.exe"
+
+WalletAddr: "your_wallet_addres_here"
+
+Mode: "pool"
+
+# Miner Options for DynMiner, eg: "GPU,65536,64,0,0" or "CPU,16"
+# To multi-gpu mine, just add more values to the array below like this
+#MinerOpts: ["GPU,8192,8,0,0","GPU,32768,16,0,1"]
+MinerOpts: ["GPU,1024,2,0,0"]
+
+# MinerName is used when pool mining and/or using dmo monitor
+# NOTE You can use a minername pulled from an environment variable here.
+# To do go, please surround the environment variable you wish to pull the minername from in $ as follows:
+# In this example, the environment variable is COMPUTERNAME
+# MinerName: $COMPUTERNAME$
+MinerName: "MyCoolMiner"
+
+# How often to restart your miner. Use 0 to never restart
+RespawnSeconds: 2400
+
+# DMO Monitor Option -- leave blank if not using dmo-monitor
+# You can find your cloud key in My Account on dmo-monitor.com
+CloudKey: "SOME_CLOUD_KEY"
+
+PoolServer: "pool1.dynamocoin.org"
+PoolPort: 4567
+StartingDiff: 3
+
