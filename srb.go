@@ -16,8 +16,11 @@ type SRBResponse struct {
 	TotalGpuWorkers int    `json:"total_gpu_workers"`
 	TotalWorkers    int    `json:"total_workers"`
 	Algorithms      []struct {
-		ID     int    `json:"id"`
-		Name   string `json:"name"`
+		ID   int    `json:"id"`
+		Name string `json:"name"`
+		Pool struct {
+			Difficulty float64 `json:"difficulty"`
+		} `json:"pool"`
 		Shares struct {
 			Total    int `json:"total"`
 			Accepted int `json:"accepted"`
@@ -69,6 +72,7 @@ func getSRBStats() {
 			thisStat.Submit = v.Shares.Total
 			thisStat.Accept = v.Shares.Accepted
 			thisStat.Reject = v.Shares.Rejected
+			thisStat.Diff = v.Pool.Difficulty
 		}
 	}
 
