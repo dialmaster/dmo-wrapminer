@@ -1,7 +1,3 @@
 mydmowrapconfig.yaml
-/*.exe
-dyn_miner2.cl
-dmo-wrapminer.ico
-release/
-prod/
-localtest/
+build/*
+localtest/*
