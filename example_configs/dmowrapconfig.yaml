@@ -29,7 +29,8 @@ CloudKey: "SOME_CLOUD_KEY"
 ## SRB Mining Options -- leave blank or ignore if not using SRBMiner
 SRBMiner: "SRBMiner-MULTI.exe"
 SRBPoolUrl: "pool1.dynamocoin.org:4567"
-SRBMode: "CPU" # CPU or GPU here
+# SRBMode should either be "CPU" or "GPU"
+SRBMode: "CPU"
 # Uncomment to add additional options that I may not know about. Example for --cpu-threads shown
 #SRBAdditionalOpts: ["--cpu-threads", "7"]
 ## END SRB Options
