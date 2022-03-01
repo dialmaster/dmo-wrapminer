@@ -44,7 +44,7 @@ type mineRpc struct {
 var accumStats mineRpc
 var lastStats mineRpc
 var myPort = 18419
-var myVersion = "1.2.0"
+var myVersion = "1.3.0"
 
 type conf struct {
 	DynMiner          string   `yaml:"DynMiner"`
