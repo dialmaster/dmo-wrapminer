@@ -1,0 +1,29 @@
+DynMiner: "DynMiner.exe"
+
+Mode: "solo"
+
+WalletAddr: "your_wallet_address"
+
+# Your full node info
+NodeUrl: "http://192.168.1.181:6439"
+NodeUser: "your_node_username"
+NodePass: "your_node_password"
+
+# Miner Options for DynMiner, eg: "GPU,65536,64,0,0" or "CPU,16"
+# To multi-gpu mine, just add more values to the array below like this
+#MinerOpts: ["GPU,8192,8,0,0","GPU,32768,16,0,1"]
+MinerOpts: ["GPU,1024,1,0,0"]
+
+# How often to restart your miner
+RespawnSeconds: 0
+
+# DMO Monitor Option -- leave blank if not using dmo-monitor
+# You can find your cloud key in My Account on dmo-monitor.com
+CloudKey: "SOME_CLOUD_KEY"
+
+# MinerName is used when pool mining and/or using dmo monitor
+# NOTE You can use a minername pulled from an environment variable here.
+# To do go, please surround the environment variable you wish to pull the minername from in $ as follows:
+# In this example, the environment variable is COMPUTERNAME
+# MinerName: $COMPUTERNAME$
+MinerName: "MySoloDynMiner123"
