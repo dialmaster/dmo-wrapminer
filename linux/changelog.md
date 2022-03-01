@@ -1,4 +1,16 @@
 
+
+## Version 1.3.0
+
+**Date of release:** `Tues 1 March 2022`
+
+**Description:** `Version 1.3.0`
+
+### Included features
+1. Forward current difficulty to dmo-monitor
+
+---
+
 ## Version 1.2.0
 
 **Date of release:** `Sunday 27 February 2022`
