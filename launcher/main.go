@@ -34,6 +34,7 @@ func main() {
 	getNewWrapMiner()
 
 	fmt.Printf("Launcher is executing dmo-wrapminer...\n")
+	fmt.Printf("NOTE: Using dmo-launcher enables auto-update for dmo-wrapminer. If you do NOT wish to have auto-updates when new versions are released, just run dmo-wrapminer directly instead.\n")
 	if len(args) == 0 {
 		args = append(args, "NO_CONFIG_FILE")
 	}
