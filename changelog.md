@@ -1,3 +1,11 @@
+## Version 1.5
+
+**Date of release:** `TBD`
+
+1. Change auto-update frequency to 12h. Make more transparent to users.
+
+---
+
 ## Version 1.4.1 
 
 **Date of release:** `Weds 2 March 2022`
