@@ -44,7 +44,10 @@ type mineRpc struct {
 var accumStats mineRpc
 var lastStats mineRpc
 var myPort = 18419
-var myVersion = "1.3.0"
+var myVersion = "1.4.0"
+var usedLauncher = 0
+
+var localTesting = false
 
 type conf struct {
 	DynMiner          string   `yaml:"DynMiner"`
@@ -70,8 +73,13 @@ type conf struct {
 // -pass d=3,m=solo
 
 func (myConfig *conf) getConf() *conf {
+	if len(configFile) == 0 {
+		configFile = "mydmowrapconfig.yaml"
+		fmt.Printf("Using default config file: %s\n", configFile)
+	} else {
+		fmt.Printf("Using specified config file: %s\n", configFile)
+	}
 
-	fmt.Printf("Using config %s\n", configFile)
 	yamlFile, err := ioutil.ReadFile(configFile)
 	if err != nil {
 		log.Fatalf("Unable to open config file  #%v ", err)
@@ -141,9 +149,25 @@ var myConfig conf
 var minerID string
 
 func main() {
+	var args = os.Args[1:]
+	var siteVersion = checkVersion()
 
-	fmt.Printf("Running dmo-wrapminer version: %s\n\n", myVersion)
-	checkVersion()
+	// For the launcher -- if 'version' is the only arg passed, simply return the current version and site version and exit
+	if len(args) == 1 {
+		if args[0] == "version" {
+			fmt.Printf("%s,%s\n", myVersion, siteVersion)
+			os.Exit(0)
+		}
+	}
+
+	fmt.Printf("Currently running dmo-wrapminer version: %s\n\n", myVersion)
+
+	myV, _ := semver.Make(myVersion)
+	curV, _ := semver.Make(siteVersion)
+	if myV.LT(curV) {
+		fmt.Printf("NOTE: A new dmo-wrapminer version %s is available from https://dmo-monitor.com/wrapminer\n\n", siteVersion)
+	}
+
 	gin.SetMode(gin.ReleaseMode)
 	gin.DefaultWriter = ioutil.Discard
 	router := gin.Default()
@@ -155,18 +179,27 @@ func main() {
 	accumStats.Submit = 0
 	lastStats.Submit = 0
 
-	var args = os.Args[1:]
-	if len(args) != 1 {
-		fmt.Fprintf(os.Stderr, "Usage: %s <config file>\n", os.Args[0])
+	if len(args) > 1 && args[1] != "launcher" {
+		fmt.Fprintf(os.Stderr, "Usage: %s <optional config file name>\n", os.Args[0])
 		fmt.Fprintln(os.Stderr, "")
 		fmt.Fprintln(os.Stderr, "Example:")
 		fmt.Fprintf(os.Stderr, "    %s test_miner.yaml\n", os.Args[0])
 		os.Exit(1)
 	}
 
+	// This determines if we check for a new version occasionally and, if we find one, exit with a status that tells
+	// the launcher to update and relaunch
+	if len(args) == 2 && args[1] == "launcher" {
+		usedLauncher = 1
+		fmt.Printf("This was run using the launcher. If a new dmo-wrapminer becomes available it will automatically be downloaded and restarted.\n")
+	}
+
 	findOpenPort()
 
-	configFile = args[0]
+	configFile = ""
+	if len(args) == 1 && args[0] != "NO_CONFIG_FILE" {
+		configFile = args[0]
+	}
 
 	myConfig.getConf()
 
@@ -208,6 +241,26 @@ func main() {
 		}
 	}()
 
+	// If dmo-minewrap was launched with the  launcher, check every 10 minutes to see if there is a new dmo-minewrap
+	// If there is, exit with code 69, to indicate to the launcher that it should download the new one and relaunch
+	if usedLauncher == 1 {
+		fmt.Printf("Will check for new dmo-wrapminer version every 5 minutes\n")
+		go func() {
+			time.Sleep(300 * time.Second)
+			for {
+				var siteVersion = checkVersion()
+				fmt.Printf("Checking for new dmo-wrapminer version!\n")
+				myV, _ := semver.Make(myVersion)
+				curV, _ := semver.Make(siteVersion)
+				if myV.LT(curV) {
+					fmt.Printf("New dmo-wrapminer version found, exiting!\n")
+					os.Exit(69)
+				}
+				time.Sleep(300 * time.Second)
+			}
+		}()
+	}
+
 	if len(myConfig.CloudKey) > 0 && myConfig.CloudKey != "SOME_CLOUD_KEY" {
 		router.POST("/forwardminerstats", forwardMinerStatsRPC)
 		router.Run(":" + strconv.Itoa(myPort))
@@ -239,19 +292,22 @@ func findOpenPort() {
 	}
 }
 
-func checkVersion() {
-
+func checkVersion() string {
 	type wrapVersion struct {
 		Version string `json:"Version"`
 	}
 
 	var curVersion wrapVersion
 
+	var scheme = "https"
+	var host = "dmo-monitor.com"
+	if localTesting {
+		scheme = "http"
+		host = "localhost:11235"
+	}
 	reqUrl := url.URL{
-		//Scheme: "http",
-		//Host:   "localhost:11235",
-		Scheme: "https",
-		Host:   "dmo-monitor.com",
+		Scheme: scheme,
+		Host:   host,
 		Path:   "dmowrapversioncheck",
 	}
 	urlString := reqUrl.String()
@@ -259,26 +315,21 @@ func checkVersion() {
 
 	if err != nil {
 		fmt.Printf("Failed request to dmo-monitor for version check: %s", err.Error())
-		return
+		return "0.0"
 	}
 
 	bodyText, err := io.ReadAll(resp.Body)
 	if err != nil {
 		fmt.Printf("Failed request to dmo-monitor for version check: %s", err.Error())
-		return
+		return "0.0"
 	}
 
 	if err := json.Unmarshal(bodyText, &curVersion); err != nil {
 		fmt.Printf("Failed request to dmo-monitor for version check: %s", err.Error())
-		return
+		return "0.0"
 	}
 
-	myV, _ := semver.Make(myVersion)
-	curV, _ := semver.Make(curVersion.Version)
-	if myV.LT(curV) {
-		fmt.Printf("NOTE: A new dmo-wrapminer version %s is available from https://dmo-monitor.com/wrapminer !!\n\n", curVersion.Version)
-	}
-
+	return curVersion.Version
 }
 
 // Accept stat request from miner, add cloud key, passthrough to dmo-monitor.. maybe do other stuff
@@ -301,11 +352,16 @@ func forwardMinerStatsRPC(c *gin.Context) {
 func sendMyStatsToMonitor(thisStat mineRpc) {
 	var urlString = ""
 	if len(myConfig.CloudKey) > 0 && myConfig.CloudKey != "SOME_CLOUD_KEY" {
+		var scheme = "https"
+		var host = "dmo-monitor.com"
+		if localTesting {
+			scheme = "http"
+			host = "localhost:11235"
+		}
+
 		reqUrl := url.URL{
-			//Scheme: "http",
-			//Host:   "localhost:11235",
-			Scheme: "https",
-			Host:   "dmo-monitor.com",
+			Scheme: scheme,
+			Host:   host,
 			Path:   "minerstats",
 		}
 		urlString = reqUrl.String()

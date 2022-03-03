@@ -1,4 +1,14 @@
+## Version 1.4.0
 
+**Date of release:** `Weds 2 March 2022`
+
+**Description:** `Version 1.4.0`
+
+### Included features
+1. Add launcher and self-updating capability
+2. Add default config file and ability to launch with no config file argument
+
+---
 
 ## Version 1.3.0
 
