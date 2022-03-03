@@ -44,7 +44,7 @@ type mineRpc struct {
 var accumStats mineRpc
 var lastStats mineRpc
 var myPort = 18419
-var myVersion = "1.4.0"
+var myVersion = "1.4.1"
 var usedLauncher = 0
 
 var localTesting = false
@@ -197,7 +197,10 @@ func main() {
 	findOpenPort()
 
 	configFile = ""
-	if len(args) == 1 && args[0] != "NO_CONFIG_FILE" {
+	if len(args) == 1 {
+		configFile = args[0]
+	}
+	if len(args) == 2 && args[0] != "NO_CONFIG_FILE" {
 		configFile = args[0]
 	}
 
