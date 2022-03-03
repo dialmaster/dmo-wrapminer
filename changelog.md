@@ -3,6 +3,7 @@
 **Date of release:** `TBD`
 
 1. Change auto-update frequency to 12h. Make more transparent to users.
+2. Update example configs (explain things a little more clearly for newbies)
 
 ---
 
