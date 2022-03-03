@@ -247,12 +247,10 @@ func main() {
 	// If dmo-minewrap was launched with the  launcher, check every 10 minutes to see if there is a new dmo-minewrap
 	// If there is, exit with code 69, to indicate to the launcher that it should download the new one and relaunch
 	if usedLauncher == 1 {
-		fmt.Printf("Will check for new dmo-wrapminer version every 5 minutes\n")
 		go func() {
 			time.Sleep(300 * time.Second)
 			for {
 				var siteVersion = checkVersion()
-				fmt.Printf("Checking for new dmo-wrapminer version!\n")
 				myV, _ := semver.Make(myVersion)
 				curV, _ := semver.Make(siteVersion)
 				if myV.LT(curV) {
