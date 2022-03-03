@@ -84,7 +84,7 @@ func getNewWrapMiner() {
 
 	myV, _ := semver.Make(versions[0])
 	curV, _ := semver.Make(versions[1])
-	if curV.LT(myV) {
+	if curV.LTE(myV) {
 		return
 	}
 
