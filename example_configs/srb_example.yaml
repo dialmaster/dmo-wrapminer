@@ -5,8 +5,9 @@ WalletAddr: "yourwalletaddresshere"
 
 SRBMiner: "SRBMiner-MULTI.exe"
 SRBPoolUrl: "pool1.dynamocoin.org:4567"
-SRBMode: "CPU" # CPU or GPU here
-# Optional array of additional command line parameters to use for SRB. You can put anything you want in here...
+# "CPU" or "GPU are the valid SRBMode options
+SRBMode: "CPU"
+# Uncomment (remove the # at the beginning of the next line) to add additional options. Example given below for --cpu-threads.
 #SRBAdditionalOpts: ["--cpu-threads", "7"]
 
 # How often to restart your miner - 0 to never restart

@@ -31,7 +31,7 @@ SRBMiner: "SRBMiner-MULTI.exe"
 SRBPoolUrl: "pool1.dynamocoin.org:4567"
 # SRBMode should either be "CPU" or "GPU"
 SRBMode: "CPU"
-# Uncomment to add additional options that I may not know about. Example for --cpu-threads shown
+# Uncomment (remove the # at the beginning of the next line) to add additional options. Example given below for --cpu-threads.
 #SRBAdditionalOpts: ["--cpu-threads", "7"]
 ## END SRB Options
 
