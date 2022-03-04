@@ -1,8 +1,8 @@
-## Version 1.5.1
+## Version 1.5.1 & 1.5.2
 
-**Date of release:** `Thurs 3 March 2022`
+**Date of release:** `Fri 4 March 2022`
 
-1. Fix bug in auto-update where old miner process is not killed before relaunch.
+1. Fix bug in auto-update where old miner process is not killed before relaunch and test
 
 ---
 

@@ -44,7 +44,7 @@ type mineRpc struct {
 var accumStats mineRpc
 var lastStats mineRpc
 var myPort = 18419
-var myVersion = "1.5.1"
+var myVersion = "1.5.2"
 var usedLauncher = 0
 
 var localTesting = false
