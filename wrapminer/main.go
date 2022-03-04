@@ -44,7 +44,7 @@ type mineRpc struct {
 var accumStats mineRpc
 var lastStats mineRpc
 var myPort = 18419
-var myVersion = "1.5.0"
+var myVersion = "1.5.1"
 var usedLauncher = 0
 
 var localTesting = false
@@ -261,6 +261,7 @@ func main() {
 				curV, _ := semver.Make(siteVersion)
 				if myV.LT(curV) {
 					fmt.Printf("New dmo-wrapminer version found, updating and relaunching.\n")
+					mineCmd.Process.Kill()
 					os.Exit(69)
 				}
 				time.Sleep(time.Duration(myConfig.CheckUpdateFrequency) * time.Minute)
