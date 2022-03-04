@@ -1,3 +1,4 @@
+## MASTER EXAMPLE CONFIG WITH ALL THE OPTIONS
 # The name of your DynMiner executable
 DynMiner: "DynMiner.exe"
 
@@ -21,6 +22,10 @@ MinerName: "MyCoolMiner"
 
 # How often to restart your miner. Use 0 to never restart
 RespawnSeconds: 1200
+
+# How often (in minutes) to check for and download updated dmo-wrapminer versions, IF you run it using dmo-launcher
+# If this argument is omitted, default is 720 (12 hours)
+CheckUpdateFrequency: 360
 
 # DMO Monitor Related Options -- leave blank if not using dmo-monitor
 # You can find your cloud key in My Account on dmo-monitor.com

@@ -50,23 +50,24 @@ var usedLauncher = 0
 var localTesting = false
 
 type conf struct {
-	DynMiner          string   `yaml:"DynMiner"`
-	Mode              string   `yaml:"Mode"`
-	NodeUrl           string   `yaml:"NodeUrl"`
-	NodeUser          string   `yaml:"NodeUser"`
-	NodePass          string   `yaml:"NodePass"`
-	WalletAddr        string   `yaml:"WalletAddr"`
-	MinerOpts         []string `yaml:"MinerOpts,flow"`
-	RespawnSeconds    int      `yaml:"RespawnSeconds"`
-	MinerName         string   `yaml:"MinerName"`
-	CloudKey          string   `yaml:"CloudKey"`
-	PoolServer        string   `yaml:"PoolServer"`
-	PoolPort          string   `yaml:"PoolPort"`
-	StartingDiff      string   `yaml:"StartingDiff"`
-	SRBMiner          string   `yaml:"SRBMiner"`
-	SRBPoolUrl        string   `yaml:"SRBPoolUrl"`
-	SRBMode           string   `yaml:"SRBMode"`
-	SRBAdditionalOpts []string `yaml:"SRBAdditionalOpts,flow"`
+	DynMiner             string   `yaml:"DynMiner"`
+	Mode                 string   `yaml:"Mode"`
+	NodeUrl              string   `yaml:"NodeUrl"`
+	NodeUser             string   `yaml:"NodeUser"`
+	NodePass             string   `yaml:"NodePass"`
+	WalletAddr           string   `yaml:"WalletAddr"`
+	MinerOpts            []string `yaml:"MinerOpts,flow"`
+	RespawnSeconds       int      `yaml:"RespawnSeconds"`
+	MinerName            string   `yaml:"MinerName"`
+	CloudKey             string   `yaml:"CloudKey"`
+	PoolServer           string   `yaml:"PoolServer"`
+	PoolPort             string   `yaml:"PoolPort"`
+	StartingDiff         string   `yaml:"StartingDiff"`
+	SRBMiner             string   `yaml:"SRBMiner"`
+	SRBPoolUrl           string   `yaml:"SRBPoolUrl"`
+	SRBMode              string   `yaml:"SRBMode"`
+	SRBAdditionalOpts    []string `yaml:"SRBAdditionalOpts,flow"`
+	CheckUpdateFrequency int      `yaml:"CheckUpdateFrequency"`
 }
 
 //TODO: Add support for yiimp solo like:
@@ -102,6 +103,10 @@ func (myConfig *conf) getConf() *conf {
 			fmt.Printf("Using MinerName from ENV: %s\n", envValue)
 			myConfig.MinerName = envValue
 		}
+	}
+
+	if myConfig.CheckUpdateFrequency == 0 {
+		myConfig.CheckUpdateFrequency = 720
 	}
 
 	return myConfig
@@ -247,8 +252,8 @@ func main() {
 	// Auto-update functionality if run from the launcher
 	if usedLauncher == 1 {
 		go func() {
-			fmt.Printf("Will check for new dmo-wrapminer version every 12 hours.\n")
-			time.Sleep(12 * time.Hour)
+			fmt.Printf("Will check for new dmo-wrapminer version every %d minutes.\n", myConfig.CheckUpdateFrequency)
+			time.Sleep(time.Duration(myConfig.CheckUpdateFrequency) * time.Minute)
 			for {
 				fmt.Printf("Checking dmo-monitor for new dmo-wrapminer version.\n")
 				var siteVersion = checkVersion()
@@ -258,7 +263,7 @@ func main() {
 					fmt.Printf("New dmo-wrapminer version found, updating and relaunching.\n")
 					os.Exit(69)
 				}
-				time.Sleep(12 * time.Hour)
+				time.Sleep(time.Duration(myConfig.CheckUpdateFrequency) * time.Minute)
 			}
 		}()
 	}
