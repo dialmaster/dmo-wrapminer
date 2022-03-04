@@ -1,8 +1,8 @@
-## Version 1.5
+## Version 1.5.0
 
-**Date of release:** `TBD`
+**Date of release:** `Thurs 3 March 2022`
 
-1. Change auto-update frequency to 12h. Make more transparent to users
+1. Change auto-update default frequency to 12h. Make more transparent to users
 2. Update example configs (explain things a little more clearly for newbies)
 3. Add CheckUpdateFrequency config option for users that want to set a different update check interval
 
