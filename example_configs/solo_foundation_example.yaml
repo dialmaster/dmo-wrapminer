@@ -5,7 +5,7 @@ Mode: "solo"
 WalletAddr: "your_wallet_address"
 
 # Your full node info
-NodeUrl: "http://192.168.1.181:6439"
+NodeUrl: "http://192.168.1.181:6433"
 NodeUser: "your_node_username"
 NodePass: "your_node_password"
 
