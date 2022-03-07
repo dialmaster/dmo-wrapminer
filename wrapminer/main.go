@@ -39,12 +39,13 @@ type mineRpc struct {
 	Reject      int
 	Submit      int
 	Diff        float64
+	Uptime      int64
 }
 
 var accumStats mineRpc
 var lastStats mineRpc
 var myPort = 18419
-var myVersion = "1.5.2"
+var myVersion = "1.6.0"
 var usedLauncher = 0
 
 var localTesting = false
@@ -153,9 +154,13 @@ var myConfig conf
 
 var minerID string
 
+var wrapStart int64
+
 func main() {
 	var args = os.Args[1:]
 	var siteVersion = checkVersion()
+
+	wrapStart = time.Now().Unix()
 
 	// For the launcher -- if 'version' is the only arg passed, simply return the current version and site version and exit
 	if len(args) == 1 {
@@ -359,6 +364,7 @@ func forwardMinerStatsRPC(c *gin.Context) {
 
 func sendMyStatsToMonitor(thisStat mineRpc) {
 	var urlString = ""
+	thisStat.Uptime = time.Now().Unix() - wrapStart
 	if len(myConfig.CloudKey) > 0 && myConfig.CloudKey != "SOME_CLOUD_KEY" {
 		var scheme = "https"
 		var host = "dmo-monitor.com"

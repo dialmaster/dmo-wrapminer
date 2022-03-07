@@ -1,3 +1,13 @@
+
+## Version 1.6.0
+
+**Date of release:** `Sun 6 March 2022`
+
+1. Add uptime to reported stats.
+2. Some small example config updates for clarity.
+
+---
+
 ## Version 1.5.1 & 1.5.2
 
 **Date of release:** `Fri 4 March 2022`
