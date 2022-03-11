@@ -1,4 +1,12 @@
 
+## Version 1.6.1
+
+**Date of release:** `Fri 11 March 2022`
+
+1. Fix for accumulated reject/submit/accept stats sometimes being wrong.
+
+---
+
 ## Version 1.6.0
 
 **Date of release:** `Sun 6 March 2022`

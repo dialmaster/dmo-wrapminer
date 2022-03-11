@@ -45,8 +45,10 @@ type mineRpc struct {
 var accumStats mineRpc
 var lastStats mineRpc
 var myPort = 18419
-var myVersion = "1.6.0"
+var myVersion = "1.6.1"
 var usedLauncher = 0
+
+var mutex = &sync.Mutex{}
 
 var localTesting = false
 
@@ -182,6 +184,7 @@ func main() {
 	gin.DefaultWriter = ioutil.Discard
 	router := gin.Default()
 
+	// Init all stats that accumulate between miner restarts to zero.
 	accumStats.Accept = 0
 	lastStats.Accept = 0
 	accumStats.Reject = 0
@@ -353,12 +356,14 @@ func forwardMinerStatsRPC(c *gin.Context) {
 		return
 	}
 
+	mutex.Lock()
 	lastStats = thisStat
-
 	thisStat.Accept += accumStats.Accept
 	thisStat.Submit += accumStats.Submit
 	thisStat.Reject += accumStats.Reject
 	thisStat.MinerID = minerID
+	mutex.Unlock()
+
 	sendMyStatsToMonitor(thisStat)
 }
 
@@ -406,9 +411,11 @@ func startMiner() {
 	var now = time.Now()
 	endMiner = now.Add(ttl)
 
+	mutex.Lock()
 	accumStats.Accept += lastStats.Accept
 	accumStats.Reject += lastStats.Reject
 	accumStats.Submit += lastStats.Submit
+	mutex.Unlock()
 
 	if myConfig.Mode != "SRB" {
 		mineCmd = setupFoundationMiner()

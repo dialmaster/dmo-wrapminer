@@ -64,7 +64,6 @@ func getSRBStats() {
 	}
 	// Find dynamo data since we don't currently care about/support other algos
 	var thisStat mineRpc
-	lastStats = thisStat
 
 	for _, v := range result.Algorithms {
 		if v.Name == "dynamo" {
@@ -76,11 +75,16 @@ func getSRBStats() {
 		}
 	}
 
+	mutex.Lock()
+	lastStats = thisStat
 	thisStat.Accept += accumStats.Accept
 	thisStat.Submit += accumStats.Submit
 	thisStat.Reject += accumStats.Reject
+	mutex.Unlock()
+
 	thisStat.MinerID = minerID
 	thisStat.Name = myConfig.MinerName
+
 	sendMyStatsToMonitor(thisStat)
 
 }
