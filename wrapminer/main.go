@@ -45,7 +45,7 @@ type mineRpc struct {
 var accumStats mineRpc
 var lastStats mineRpc
 var myPort = 18419
-var myVersion = "1.6.1"
+var myVersion = "1.6.2"
 var usedLauncher = 0
 
 var mutex = &sync.Mutex{}
@@ -348,7 +348,7 @@ func checkVersion() string {
 	return curVersion.Version
 }
 
-// Accept stat request from miner, add cloud key, passthrough to dmo-monitor.. maybe do other stuff
+// Accept stat request from miner, add cloud key, passthrough to dmo-monitor.
 func forwardMinerStatsRPC(c *gin.Context) {
 	var thisStat mineRpc
 	if err := c.BindJSON(&thisStat); err != nil {
@@ -406,16 +406,16 @@ func sendMyStatsToMonitor(thisStat mineRpc) {
 }
 
 func startMiner() {
-	m.Lock()
-	defer m.Unlock()
+	mutex.Lock()
 	var now = time.Now()
 	endMiner = now.Add(ttl)
 
-	mutex.Lock()
 	accumStats.Accept += lastStats.Accept
 	accumStats.Reject += lastStats.Reject
 	accumStats.Submit += lastStats.Submit
-	mutex.Unlock()
+	lastStats.Accept = 0
+	lastStats.Reject = 0
+	lastStats.Submit = 0
 
 	if myConfig.Mode != "SRB" {
 		mineCmd = setupFoundationMiner()
@@ -428,6 +428,7 @@ func startMiner() {
 	mineCmd.Stdout = os.Stdout
 	mineCmd.Stdout = os.Stdout
 	mineCmd.Start()
+	mutex.Unlock()
 }
 
 func setupSRBMiner() *exec.Cmd {

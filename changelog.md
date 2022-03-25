@@ -1,4 +1,12 @@
 
+## Version 1.6.2
+
+**Date of release:** `Fri 25 March 2022`
+
+1. Another fix for reject/submit/accept stats.
+
+---
+
 ## Version 1.6.1
 
 **Date of release:** `Fri 11 March 2022`
