@@ -1,4 +1,12 @@
 
+## Version 1.7.0
+
+**Date of release:** `Sun 27 March 2022`
+
+1. Add ability to restart and reload config by pressing 'r'
+
+---
+
 ## Version 1.6.2
 
 **Date of release:** `Fri 25 March 2022`

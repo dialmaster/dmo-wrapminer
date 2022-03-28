@@ -7,6 +7,7 @@ require gopkg.in/yaml.v2 v2.4.0
 require (
 	github.com/blang/semver/v4 v4.0.0 // indirect
 	github.com/denisbrodbeck/machineid v1.0.1 // indirect
+	github.com/eiannone/keyboard v0.0.0-20200508000154-caf4b762e807 // indirect
 	github.com/gin-contrib/sse v0.1.0 // indirect
 	github.com/gin-gonic/gin v1.7.7 // indirect
 	github.com/go-playground/locales v0.13.0 // indirect
@@ -20,5 +21,5 @@ require (
 	github.com/modern-go/reflect2 v0.0.0-20180701023420-4b7aa43c6742 // indirect
 	github.com/ugorji/go/codec v1.1.7 // indirect
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9 // indirect
-	golang.org/x/sys v0.0.0-20200116001909-b77594299b42 // indirect
+	golang.org/x/sys v0.0.0-20220327210214-530d0810a4d0 // indirect
 )

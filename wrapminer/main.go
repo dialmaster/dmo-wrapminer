@@ -21,6 +21,7 @@ import (
 	"gopkg.in/yaml.v2"
 
 	"github.com/denisbrodbeck/machineid"
+	"github.com/eiannone/keyboard"
 	"github.com/gin-gonic/gin"
 )
 
@@ -45,7 +46,7 @@ type mineRpc struct {
 var accumStats mineRpc
 var lastStats mineRpc
 var myPort = 18419
-var myVersion = "1.6.2"
+var myVersion = "1.7.0"
 var usedLauncher = 0
 
 var mutex = &sync.Mutex{}
@@ -112,6 +113,18 @@ func (myConfig *conf) getConf() *conf {
 		myConfig.CheckUpdateFrequency = 720
 	}
 
+	machineID, _ := machineid.ProtectedID("dmo-wrapminer")
+	minerID = myConfig.MinerName + "-" + strconv.Itoa(myPort) + "-" + machineID
+	var timer = myConfig.RespawnSeconds
+	ttl = time.Duration(timer) * time.Second
+
+	//fmt.Printf("MinerID is: %s\n", minerID)
+	if timer > 0 {
+		fmt.Printf("Autorestarting miner every %d seconds.\n", timer)
+	} else {
+		fmt.Printf("Miner autorestart disabled.\n")
+	}
+
 	return myConfig
 }
 
@@ -172,7 +185,8 @@ func main() {
 		}
 	}
 
-	fmt.Printf("Currently running dmo-wrapminer version: %s\n\n", myVersion)
+	fmt.Printf("\nCurrently running dmo-wrapminer version: %s\n\n", myVersion)
+	fmt.Printf("Press 'r' to reload config and restart miner with new config options.\n\n")
 
 	myV, _ := semver.Make(myVersion)
 	curV, _ := semver.Make(siteVersion)
@@ -219,13 +233,6 @@ func main() {
 
 	myConfig.getConf()
 
-	machineID, _ := machineid.ProtectedID("dmo-wrapminer")
-	minerID = myConfig.MinerName + "-" + strconv.Itoa(myPort) + "-" + machineID
-
-	fmt.Printf("MinerID is: %s\n", minerID)
-
-	var timer = myConfig.RespawnSeconds
-	ttl = time.Duration(timer) * time.Second
 	go func() {
 		var minerOn time.Duration
 		for {
@@ -235,6 +242,29 @@ func main() {
 			var dur = time.Since(st)
 			minerOn += dur
 		}
+	}()
+
+	// Get keypress loop....
+	go func() {
+		for {
+			time.Sleep(1 * time.Second)
+			char, _, err := keyboard.GetSingleKey()
+			if err != nil {
+				log.Printf("ERROR GETTING KEYPRESS: %s", err.Error())
+			}
+
+			if char == 'r' || char == 'R' {
+				fmt.Printf("Reloading and restarting miner!\n")
+				mutex.Lock()
+				myConfig.getConf()
+				if mineCmd != nil {
+					mineCmd.Process.Kill()
+					mineCmd = nil
+				}
+				mutex.Unlock()
+			}
+		}
+
 	}()
 
 	go func() {
@@ -296,7 +326,7 @@ func findOpenPort() {
 			myPort += 1
 			portsChecked += 1
 		} else {
-			fmt.Printf("Using port %d\n", myPort)
+			//fmt.Printf("Using port %d\n", myPort)
 			server.Close()
 			break
 		}
@@ -407,8 +437,7 @@ func sendMyStatsToMonitor(thisStat mineRpc) {
 
 func startMiner() {
 	mutex.Lock()
-	var now = time.Now()
-	endMiner = now.Add(ttl)
+	endMiner = time.Now().Add(ttl)
 
 	accumStats.Accept += lastStats.Accept
 	accumStats.Reject += lastStats.Reject
